@@ -1,4 +1,4 @@
-FROM topdevbox/ubuntu-base
+FROM topdevbox/base
 MAINTAINER Daniel <daniel@topdevbox.com>
 
 RUN apt-get update && \
