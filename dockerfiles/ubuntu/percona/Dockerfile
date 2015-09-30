@@ -24,10 +24,9 @@ RUN apt-get install -y percona-server-server-5.6 percona-server-client-5.6 perco
 
 RUN sed -i -- "s/bind-address/#bind-address/g" /etc/mysql/my.cnf
 
-RUN service mysql restart
-
-RUN mysql -u root -p"dbpassword" -e "GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY 'dbpassword' WITH GRANT OPTION;"
-RUN mysql -u root -p"dbpassword" -e "FLUSH PRIVILEGES;"
+#RUN service mysql restart
+#RUN mysql -u root -p"dbpassword" -e "GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY 'dbpassword' WITH GRANT OPTION;"
+#RUN mysql -u root -p"dbpassword" -e "FLUSH PRIVILEGES;"
 
 
 RUN echo never > /sys/kernel/mm/transparent_hugepage/enabled
