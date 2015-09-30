@@ -29,8 +29,8 @@ RUN sed -i -- "s/bind-address/#bind-address/g" /etc/mysql/my.cnf
 #RUN mysql -u root -p"dbpassword" -e "FLUSH PRIVILEGES;"
 
 
-RUN echo never > /sys/kernel/mm/transparent_hugepage/enabled
-RUN echo never > /sys/kernel/mm/transparent_hugepage/defrag
+#RUN echo never > /sys/kernel/mm/transparent_hugepage/enabled
+#RUN echo never > /sys/kernel/mm/transparent_hugepage/defrag
 
 RUN apt-get install -y libjemalloc1 libjemalloc-dev
 RUN sed -i -- "s/[mysqld_safe]/[mysqld_safe]\nmalloc-lib= /usr/include/jemalloc/g" /etc/mysql/my.cnf
