@@ -33,7 +33,8 @@ RUN sed -i -- "s/bind-address/#bind-address/g" /etc/mysql/my.cnf
 #RUN echo never > /sys/kernel/mm/transparent_hugepage/defrag
 
 RUN apt-get install -y libjemalloc1 libjemalloc-dev
-RUN sed -i -- "s/[mysqld_safe]/[mysqld_safe]\nmalloc-lib= \/usr\/include\/jemalloc/g" /etc/mysql/my.cnf
+#RUN sed -i -- "s/[mysqld_safe]/[mysqld_safe]malloc-lib= /usr/include/jemalloc/g" /etc/mysql/my.cnf
+RUN sed -i -- '/\[mysqld_safe\]/a malloc-lib = /usr/include/jemalloc' /etc/mysql/my.cnf
 
 RUN apt-get install -y percona-server-tokudb-5.6
 
