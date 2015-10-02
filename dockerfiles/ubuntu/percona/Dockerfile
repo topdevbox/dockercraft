@@ -23,11 +23,11 @@ RUN echo "percona-server-server-5.6 percona-server-server/root_password password
 RUN apt-get install -y percona-server-server-5.6 percona-server-client-5.6 percona-server-common-5.6 
 
 RUN sed -i -- "s/bind-address/#bind-address/g" /etc/mysql/my.cnf
-RUN sed -i -e"s/^bind-address\s*=\s*127.0.0.1/bind-address = 0.0.0.0/" /etc/mysql/my.cnf
+RUN sed -i -e "s/^bind-address\s*=\s*127.0.0.1/bind-address = 0.0.0.0/" /etc/mysql/my.cnf
 
 #RUN service mysql restart
-RUN mysql -u root -p"dbpassword" -e "GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY 'dbpassword' WITH GRANT OPTION;"
-RUN mysql -u root -p"dbpassword" -e "FLUSH PRIVILEGES;"
+RUN mysql --user=root --password=dbpassword -e "GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY 'dbpassword' WITH GRANT OPTION;"
+RUN mysql --user=root --password=dbpassword -e "FLUSH PRIVILEGES;"
 
 
 RUN apt-get install -y libjemalloc1 libjemalloc-dev
