@@ -27,7 +27,7 @@ RUN sed -i -e "s/^bind-address\s*=\s*127.0.0.1/bind-address = 0.0.0.0/" /etc/mys
 
 #RUN service mysql restart
 RUN mysql --user=root --password=dbpassword -e "GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY 'dbpassword' WITH GRANT OPTION;"; exit 0
-RUN mysql --user=root --password=dbpassword -e "FLUSH PRIVILEGES;"
+RUN mysql --user=root --password=dbpassword -e "FLUSH PRIVILEGES;"; exit 0
 
 
 RUN apt-get install -y libjemalloc1 libjemalloc-dev
