@@ -49,3 +49,4 @@ RUN service mysql restart
 ##################################################################
 
 
+CMD service mysql start && tail -F /var/log/mysql/error.log
