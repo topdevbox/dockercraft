@@ -26,7 +26,7 @@ RUN sed -i -- "s/bind-address/#bind-address/g" /etc/mysql/my.cnf
 RUN sed -i -e "s/^bind-address\s*=\s*127.0.0.1/bind-address = 0.0.0.0/" /etc/mysql/my.cnf
 
 #RUN service mysql restart
-RUN mysql --user=root --password=dbpassword -e "GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY 'dbpassword' WITH GRANT OPTION;"
+RUN mysql --user=root --password=dbpassword -e "GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY 'dbpassword' WITH GRANT OPTION;"; exit 0
 RUN mysql --user=root --password=dbpassword -e "FLUSH PRIVILEGES;"
 
 
