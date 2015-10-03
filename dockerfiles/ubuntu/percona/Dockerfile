@@ -10,6 +10,8 @@ RUN apt-get update && \
 	apt-get autoremove && \
     apt-get clean
 
+RUN apt-get install wget
+
 RUN apt-key adv --keyserver keys.gnupg.net --recv-keys 1C4CBDCDCD2EFD2A
 
 RUN echo "deb http://repo.percona.com/apt "$(lsb_release -sc)" main" | sudo tee /etc/apt/sources.list.d/percona.list
@@ -51,5 +53,11 @@ RUN service mysql restart
 RUN cd /tmp
 RUN wget https://gist.githubusercontent.com/inputx/d210ea00ece9fe8a847a/raw/b807962265256ab2d18371abbf41b37f6222ec33/all_privileges.sql
 RUN mysql --user=root --password=dbpassword < ./all_privileges.sql
+
+#Clean system
+RUN	apt-get autoclean && \
+	apt-get autoremove && \
+    apt-get clean
+
 
 CMD service mysql start && tail -F /var/log/mysql/error.log
