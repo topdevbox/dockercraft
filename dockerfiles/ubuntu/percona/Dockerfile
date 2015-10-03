@@ -58,6 +58,7 @@ RUN apt-get autoclean -y && \
 
 
 CMD service mysql start && tail -F /var/log/mysql/error.log
+CMD /etc/rc2.d/S19mysql start 
 CMD mysql --user=root --password=dbpassword -e "GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY 'dbpassword' WITH GRANT OPTION;"
 CMD mysql --user=root --password=dbpassword -e "FLUSH PRIVILEGES;"
-CMD mysql --user=root --password=dbpassword < /tmp/all_privileges.sql
+CMD mysql --user=root --password=dbpassword < /all_privileges.sql
