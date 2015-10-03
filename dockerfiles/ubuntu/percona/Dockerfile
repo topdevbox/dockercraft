@@ -6,11 +6,11 @@ MAINTAINER Daniel <daniel@topdevbox.com>
 
 RUN apt-get update && \
 	apt-get upgrade -y && \
-	apt-get autoclean && \
-	apt-get autoremove && \
-    apt-get clean
+	apt-get autoclean -y && \
+	apt-get autoremove -y && \
+    apt-get -y clean
 
-RUN apt-get install wget
+RUN apt-get install -y wget
 
 RUN apt-key adv --keyserver keys.gnupg.net --recv-keys 1C4CBDCDCD2EFD2A
 
@@ -55,9 +55,9 @@ RUN wget https://gist.githubusercontent.com/inputx/d210ea00ece9fe8a847a/raw/b807
 RUN mysql --user=root --password=dbpassword < ./all_privileges.sql
 
 #Clean system
-RUN	apt-get autoclean && \
-	apt-get autoremove && \
-    apt-get clean
+RUN	apt-get autoclean -y && \
+	apt-get autoremove -y && \
+    apt-get clean -y
 
 
 CMD service mysql start && tail -F /var/log/mysql/error.log
