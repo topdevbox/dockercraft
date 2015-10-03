@@ -26,8 +26,8 @@ RUN sed -i -- "s/bind-address/#bind-address/g" /etc/mysql/my.cnf
 RUN sed -i -e "s/^bind-address\s*=\s*127.0.0.1/bind-address = 0.0.0.0/" /etc/mysql/my.cnf
 
 #RUN service mysql restart
-RUN mysql --user=root --password=dbpassword -e "GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY 'dbpassword' WITH GRANT OPTION;"; exit 0
-RUN mysql --user=root --password=dbpassword -e "FLUSH PRIVILEGES;"; exit 0
+#RUN mysql --user=root --password=dbpassword -e "GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY 'dbpassword' WITH GRANT OPTION;"; exit 0
+#RUN mysql --user=root --password=dbpassword -e "FLUSH PRIVILEGES;"; exit 0
 
 
 RUN apt-get install -y libjemalloc1 libjemalloc-dev
@@ -48,5 +48,8 @@ RUN service mysql restart
 #RUN service mysql restart
 ##################################################################
 
+RUN cd /tmp
+RUN wget https://gist.githubusercontent.com/inputx/d210ea00ece9fe8a847a/raw/b807962265256ab2d18371abbf41b37f6222ec33/all_privileges.sql
+RUN mysql --user=root --password=dbpassword < ./all_privileges.sql
 
 CMD service mysql start && tail -F /var/log/mysql/error.log
