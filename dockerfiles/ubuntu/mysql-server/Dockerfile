@@ -3,7 +3,7 @@ MAINTAINER Daniel <daniel@topdevbox.com>
 # How-To
 # Local Build: docker build -t my/mysql:test .
 # Local Run: docker run -i -t -v ~/mysql:/var/lib/mysql --name="mysql-run" my/mysql:test /bin/bash
-# Deamon Run: docker run -v ~/mysql:/var/lib/mysql -d --name="mysql-run" -e "MYSQL_ROOT_PASSWORD=password" -p 3306:3306 my/mysql:test 
+# Deamon Run: docker run -v ~/mysql:/var/lib/mysql -d --name="mysql" -e "MYSQL_ROOT_PASSWORD=password" -p 3306:3306 my/mysql:test 
 
 RUN rm -rf /var/lib/mysql && mkdir -p /var/lib/mysql /var/run/mysqld \
   && chown -R mysql:mysql /var/lib/mysql /var/run/mysqld \

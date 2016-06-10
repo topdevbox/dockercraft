@@ -1,127 +1,133 @@
 #!/bin/bash
-set -e
+set -eo pipefail
 
-DATA_DIR="/var/lib/mysql"
-MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-""}
-MYSQL_DATABASE=${MYSQL_DATABASE:-""}
-MYSQL_USER=${MYSQL_USER}
-MYSQL_PASSWORD=${MYSQL_PASSWORD}
+# if command starts with an option, prepend mysqld
+if [ "${1:0:1}" = '-' ]; then
+	set -- mysqld "$@"
+fi
 
-mysql_pid=
-mysql=( mysql --protocol=socket -uroot )
+# skip setup if they want an option that stops mysqld
+wantHelp=
+for arg; do
+	case "$arg" in
+		-'?'|--help|--print-defaults|-V|--version)
+			wantHelp=1
+			break
+			;;
+	esac
+done
 
-_install_db()
-{
-  mkdir -p "${DATA_DIR}"
-  chown -R mysql:mysql "${DATA_DIR}"
-  mysql_install_db --user=mysql --datadir="${DATA_DIR}"
+_datadir() {
+	"$@" --verbose --help 2>/dev/null | awk '$1 == "datadir" { print $2; exit }'
 }
 
-_start_mysql()
-{
-  "$@" --user=mysql --skip-networking & mysql_pid="$!"
-  for i in {30..0}; do
-    if echo 'SELECT 1' | "${mysql}" &> /dev/null; then
-      break
-    fi
-    echo 'MySQL init process in progress...'
-    sleep 1
-  done
-  if [ "$i" = 0 ]; then
-    echo >&2 'MySQL init process failed.'
-    exit
-  fi
-}
+# allow the container to be started with `--user`
+if [ "$1" = 'mysqld' -a -z "$wantHelp" -a "$(id -u)" = '0' ]; then
+	DATADIR="$(_datadir "$@")"
+	mkdir -p "$DATADIR"
+	chown -R mysql:mysql "$DATADIR"
+	# exec gosu mysql "$BASH_SOURCE" "$@"
+fi
 
-_stop_mysql()
-{
-  if ! kill -s TERM "${mysql_pid}" || ! wait "${mysql_pid}"; then
-    echo >&2 'MySQL init process failed.'
-    exit 1
-  fi
-}
+if [ "$1" = 'mysqld' -a -z "$wantHelp" ]; then
+	# Get config
+	DATADIR="$(_datadir "$@")"
 
-_init_config()
-{
-  echo 'SET @@SESSION.SQL_LOG_BIN=0;' | "${mysql[@]}"
-  echo 'DELETE FROM mysql.user;' | "${mysql[@]}"
-}
+	if [ ! -d "$DATADIR/mysql" ]; then
+		if [ -z "$MYSQL_ROOT_PASSWORD" -a -z "$MYSQL_ALLOW_EMPTY_PASSWORD" -a -z "$MYSQL_RANDOM_ROOT_PASSWORD" ]; then
+			echo >&2 'error: database is uninitialized and password option is not specified '
+			echo >&2 '  You need to specify one of MYSQL_ROOT_PASSWORD, MYSQL_ALLOW_EMPTY_PASSWORD and MYSQL_RANDOM_ROOT_PASSWORD'
+			exit 1
+		fi
 
-_init_root_user()
-{
-  echo "CREATE USER 'root'@'%' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';" | "${mysql[@]}"
-  echo "GRANT ALL ON *.* TO 'root'@'%' WITH GRANT OPTION;" | "${mysql[@]}"
-  echo "FLUSH PRIVILEGES;" | "${mysql[@]}"
-}
+		mkdir -p "$DATADIR"
 
-_init_database()
-{
-  echo "DROP DATABASE IF EXISTS test;" | "${mysql[@]}"
-  if [ ${MYSQL_DATABASE} ]; then
-    echo "CREATE DATABASE IF NOT EXISTS ${MYSQL_DATABASE} ;" | "${mysql[@]}"
-  fi
-}
+		echo 'Initializing database'
+		"$@" --initialize-insecure
+		echo 'Database initialized'
 
-_init_user()
-{
-  if [ "${MYSQL_DATABASE}" ]; then mysql+=( "$MYSQL_DATABASE" ); fi
+		"$@" --skip-networking &
+		pid="$!"
 
-  if [ "${MYSQL_USER}" -a "${MYSQL_PASSWORD}" ]; then
-    echo "CREATE USER '${MYSQL_USER}'@'%' IDENTIFIED BY '${MYSQL_PASSWORD}' ;" | "${mysql[@]}"
-    if [ "${MYSQL_DATABASE}" ]; then
-      echo "GRANT ALL ON ${MYSQL_DATABASE}.* TO '${MYSQL_USER}'@'%' ;" | "${mysql[@]}"
-    fi
-    echo 'FLUSH PRIVILEGES ;' | "${mysql[@]}"
-  fi
+		mysql=( mysql --protocol=socket -uroot )
 
-  echo 'Init user done.'
-}
+		for i in {30..0}; do
+			if echo 'SELECT 1' | "${mysql[@]}" &> /dev/null; then
+				break
+			fi
+			echo 'MySQL init process in progress...'
+			sleep 1
+		done
+		if [ "$i" = 0 ]; then
+			echo >&2 'MySQL init process failed.'
+			exit 1
+		fi
 
-_init_data()
-{
-  echo 'Init mysql config...'
-  _init_config
+		if [ -z "$MYSQL_INITDB_SKIP_TZINFO" ]; then
+			# sed is for https://bugs.mysql.com/bug.php?id=20545
+			mysql_tzinfo_to_sql /usr/share/zoneinfo | sed 's/Local time zone must be set--see zic manual page/FCTY/' | "${mysql[@]}" mysql
+		fi
 
-  echo 'Init root user...'
-  _init_root_user
-  mysql+=( -p"${MYSQL_ROOT_PASSWORD}" )
+		if [ ! -z "$MYSQL_RANDOM_ROOT_PASSWORD" ]; then
+			MYSQL_ROOT_PASSWORD="$(pwgen -1 32)"
+			echo "GENERATED ROOT PASSWORD: $MYSQL_ROOT_PASSWORD"
+		fi
+		"${mysql[@]}" <<-EOSQL
+			-- What's done in this file shouldn't be replicated
+			--  or products like mysql-fabric won't work
+			SET @@SESSION.SQL_LOG_BIN=0;
 
-  echo 'Init database...'
-  _init_database
+			DELETE FROM mysql.user ;
+			CREATE USER 'root'@'%' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}' ;
+			GRANT ALL ON *.* TO 'root'@'%' WITH GRANT OPTION ;
+			DROP DATABASE IF EXISTS test ;
+			FLUSH PRIVILEGES ;
+		EOSQL
 
-  echo 'Init user...'
-  _init_user
+		if [ ! -z "$MYSQL_ROOT_PASSWORD" ]; then
+			mysql+=( -p"${MYSQL_ROOT_PASSWORD}" )
+		fi
 
-  echo 'Init data done.'
-}
+		if [ "$MYSQL_DATABASE" ]; then
+			echo "CREATE DATABASE IF NOT EXISTS \`$MYSQL_DATABASE\` ;" | "${mysql[@]}"
+			mysql+=( "$MYSQL_DATABASE" )
+		fi
 
-_init_mysql()
-{
-  if [ ! -d "${DATA_DIR}/mysql" ]; then
-    echo 'Initializing base data...'
-    _install_db
+		if [ "$MYSQL_USER" -a "$MYSQL_PASSWORD" ]; then
+			echo "CREATE USER '$MYSQL_USER'@'%' IDENTIFIED BY '$MYSQL_PASSWORD' ;" | "${mysql[@]}"
 
-    echo 'Starting mysql service...'
-    _start_mysql $@
+			if [ "$MYSQL_DATABASE" ]; then
+				echo "GRANT ALL ON \`$MYSQL_DATABASE\`.* TO '$MYSQL_USER'@'%' ;" | "${mysql[@]}"
+			fi
 
-    echo 'Initializing mysql data...'
-    _init_data
+			echo 'FLUSH PRIVILEGES ;' | "${mysql[@]}"
+		fi
 
-    echo 'Stopping mysql service...'
-    _stop_mysql
-  fi
-  echo 'MySQL Init done.'
-}
+		echo
+		for f in /docker-entrypoint-initdb.d/*; do
+			case "$f" in
+				*.sh)     echo "$0: running $f"; . "$f" ;;
+				*.sql)    echo "$0: running $f"; "${mysql[@]}" < "$f"; echo ;;
+				*.sql.gz) echo "$0: running $f"; gunzip -c "$f" | "${mysql[@]}"; echo ;;
+				*)        echo "$0: ignoring $f" ;;
+			esac
+			echo
+		done
 
-_main()
-{
-  if [ "$1" = 'mysqld' ]; then
-    echo 'Initializing MySQL...'
-    _init_mysql $@
-  fi
+		if [ ! -z "$MYSQL_ONETIME_PASSWORD" ]; then
+			"${mysql[@]}" <<-EOSQL
+				ALTER USER 'root'@'%' PASSWORD EXPIRE;
+			EOSQL
+		fi
+		if ! kill -s TERM "$pid" || ! wait "$pid"; then
+			echo >&2 'MySQL init process failed.'
+			exit 1
+		fi
 
-  echo 'Start mysql...'
-  exec $@
-}
+		echo
+		echo 'MySQL init process done. Ready for start up.'
+		echo
+	fi
+fi
 
-_main $@
+exec "$@"
