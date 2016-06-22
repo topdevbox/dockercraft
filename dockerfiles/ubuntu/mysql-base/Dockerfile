@@ -9,9 +9,8 @@ ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get install -y mysql-server mysql-client \
     && apt-get autoremove -y \
-	&& apt-get clean autoclean
-
-#   && rm -rf /var/lib/apt /var/lib/dpkg /var/lib/cache /var/lib/log \
-#	&& rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+	&& apt-get clean autoclean \
+    && rm -rf /var/lib/apt /var/lib/dpkg /var/lib/cache /var/lib/log \
+	&& rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 EXPOSE 3306
