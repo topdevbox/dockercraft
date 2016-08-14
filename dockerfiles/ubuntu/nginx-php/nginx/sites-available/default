@@ -1,0 +1,75 @@
+
+server {
+	listen 80 default_server;
+	listen [::]:80 default_server;
+
+
+	root /var/www/html;
+
+	# Add index.php to the list if you are using PHP
+	index index.html index.htm index.nginx-debian.html;
+
+	server_name _;
+
+	location / {
+		# First attempt to serve request as file, then
+		# as directory, then fall back to displaying a 404.
+		try_files $uri $uri/ =404;
+	}
+
+	# pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+	#
+	#location ~ \.php$ {
+	#	include snippets/fastcgi-php.conf;
+	#
+	#	# With php7.0-cgi alone:
+	#	fastcgi_pass 127.0.0.1:9000;
+	#	# With php7.0-fpm:
+	#	fastcgi_pass unix:/run/php/php7.0-fpm.sock;
+	#}
+	    location ~ \.php$ {
+        client_max_body_size 1024M;
+        try_files      $uri =404;
+
+        # Include the fastcgi_params defaults provided by nginx
+        include        /etc/nginx/fastcgi_params;
+
+        # SCRIPT_FILENAME is a required parameter for things to work properly,
+        # but is missing in the default fastcgi_params. We define it here to
+        # be sure that it exists.
+        fastcgi_param   SCRIPT_FILENAME         $document_root$fastcgi_script_name;
+
+        # Use the upstream for fastcgi / php5-fpm that we defined in nginx.conf
+        fastcgi_pass   php;
+
+        # And get to serving the file!
+        fastcgi_index  index.php;
+    }
+
+    # PHP FPM status page that we defined in php-config/www.conf
+    location /php-status {
+        include        /etc/nginx/fastcgi_params;
+        fastcgi_param  SCRIPT_FILENAME         $document_root$fastcgi_script_name;
+        fastcgi_pass   php;
+    }
+}
+
+
+# Virtual Host configuration for example.com
+#
+# You can move that to a different file under sites-available/ and symlink that
+# to sites-enabled/ to enable it.
+#
+#server {
+#	listen 80;
+#	listen [::]:80;
+#
+#	server_name example.com;
+#
+#	root /var/www/example.com;
+#	index index.html;
+#
+#	location / {
+#		try_files $uri $uri/ =404;
+#	}
+#}
