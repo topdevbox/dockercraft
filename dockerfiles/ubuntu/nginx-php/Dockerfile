@@ -11,6 +11,8 @@ RUN apt-get update && \
 	apt-get autoremove && \
     apt-get clean
 
+RUN useradd -ms /bin/bash ubuntu
+
 RUN apt-get install -y nano \
 			curl \
 			nginx \
@@ -41,7 +43,7 @@ RUN apt-get install -y nano \
 			php-bz2 \
 			php-opcache && \
 	mkdir /var/data && \
-	chown -R www-data:www-data /var/data
+	chown -R ubuntu:ubuntu /var/data
 
 # 	VALUME POINTS
 #	 - /etc/php
